@@ -295,6 +295,8 @@ class SearchHelper extends AbstractHelper
         if (method_exists($noun, 'additionalSearchText')) {
             $article[] = $noun->additionalSearchText();
         }
+        //index attached filestore files
+        $article[] = $this->indexFSFiles($noun);
         //get additional searchable text from helpers
         foreach ($this->cms->allHelpers() as $name) {
             if (method_exists($this->cms->helper($name), 'hook_search_index')) {
@@ -305,6 +307,37 @@ class SearchHelper extends AbstractHelper
         $article = implode(' ', $article);
         $article = preg_replace('/ (.+)( +\1)+/i', '$1', $article);
         return $article;
+    }
+
+    public function indexFSFiles(&$noun)
+    {
+        //try to allocate way more memory
+        ini_set('memory_limit', '500M');
+        $memory_limit = return_bytes(ini_get('memory_limit'));
+        $out = '';
+        foreach ($this->cms->helper('filestore')->allFiles($noun) as $file) {
+            //add file metacard data to search index text
+            $out .= ' '.$file->metaCard();
+            //if file is a PDF, extract its text and put that in the index text
+            if ($file->type() == 'application/pdf') {
+                if ($file->size() > $memory_limit/10) {
+                    //don't try to parse anything additional from files over 1/10 the memory_limit
+                    continue;
+                }
+                try {
+                    ob_start();
+                    $parser = new \Smalot\PdfParser\Parser();
+                    $pdf = @$parser->parseFile($file->path());
+                    $out .= ' '.@$pdf->getText();
+                    unset($pdf);
+                    unset($parser);
+                    ob_end_clean();
+                } catch (\Exception $e) {
+                    $out .= ' [error parsing pdf]';
+                }
+            }
+        }
+        return $out;
     }
 
     public function index($noun)
@@ -333,4 +366,22 @@ class SearchHelper extends AbstractHelper
         );
         $this->endTransaction();
     }
+}
+
+function return_bytes($val)
+{
+    $val = trim($val);
+    $last = strtolower($val[strlen($val)-1]);
+    switch ($last) {
+        // The 'G' modifier is available since PHP 5.1.0
+        case 'g':
+            $val *= 1024;
+            // no break
+        case 'm':
+            $val *= 1024;
+            // no break
+        case 'k':
+            $val *= 1024;
+    }
+    return $val;
 }
