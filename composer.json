@@ -1,0 +1,17 @@
+{
+    "name": "digraphcms/digraph-search",
+    "description": "Digraph module to provide search indexing and a public search engine.",
+    "type": "digraph-module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Joby Elliott",
+            "email": "joby@byjoby.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Digraph\\Modules\\Search\\": "src/"
+        }
+    }
+}

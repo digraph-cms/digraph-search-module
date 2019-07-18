@@ -1,0 +1,65 @@
+.digraph-search-result {
+  margin: $(spacing_base) 0;
+  line-height: $(line_height_compact);
+
+  a {
+    text-decoration: none;
+    color: inherit !important;
+  }
+
+  .name {
+    color: $(color_link);
+    font-weight: bold;
+    text-decoration: underline;
+    line-height: $(line_height_compact);
+  }
+
+  .url {
+    color: $(color_confirmation);
+    font-size: 0.5em;
+    font-style: italic;
+    line-height: $(line_height_compact);
+  }
+
+  .highlights {
+    line-height: $(line_height_compact);
+    font-size: 0.7em;
+    opacity: 0.75;
+
+    .highlight {
+      display: inline;
+
+      &:after {
+        content: ' ... ';
+        display: inline;
+      }
+
+      &:last-child:after {
+        display: none;
+      }
+
+      em {
+        font-weight: bold;
+        color: $(color_accent);
+      }
+    }
+  }
+
+  a:visited {
+    .name {
+      color: $(color_link_visited) !important;
+    }
+  }
+
+  a:hover {
+    .name {
+      color: $(color_link_hover) !important;
+    }
+  }
+
+  a:active {
+    .name {
+      color: $(color_link_active) !important;
+    }
+  }
+}

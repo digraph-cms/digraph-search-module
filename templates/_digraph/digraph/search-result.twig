@@ -1,0 +1,11 @@
+<div class="digraph-search-result">
+  <a href="{{result.noun.url()|raw}}">
+    <div class="name">{{result.noun.name()}}</div>
+    <div class="url">{{result.noun.url()}}</div>
+    <div class="highlights">
+      {% for h in result.highlights %}
+        <div class="highlight">{{h|raw}}</div>
+      {% endfor %}
+    </div>
+  </a>
+</div>

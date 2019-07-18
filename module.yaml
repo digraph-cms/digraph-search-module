@@ -1,0 +1,28 @@
+module:
+  name: digraph_search
+  namespace: Digraph\Modules\Search
+
+helpers:
+  initialized:
+    search: true
+  classes:
+    search: ${module.namespace}\SearchHelper
+
+search:
+  cron:
+    limit: 1
+  highlight:
+    length: 300
+    count: 2
+  perpage: 20
+
+strings:
+  urls:
+    common:
+      _search/display: Site search
+
+navigation:
+  parents:
+    common:
+      '_search/*': _search/display
+      _search/display: __none
