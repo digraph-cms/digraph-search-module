@@ -40,24 +40,20 @@ class SearchHelper extends AbstractHelper
     {
         $count = 0;
         $errors = [];
-        $queue = $this->cms->helper('data')->facts('search_index_queue');
-        if ($list = $queue->list()) {
-            $this->beginTransaction();
-            while ($list && $count < 10) {
-                $fact = array_shift($list);
-                if ($fact->data()['action'] == 'delete') {
-                    $count++;
-                    $this->delete($fact->about());
-                } elseif ($noun = $this->cms->read($fact->about())) {
-                    $count++;
-                    $this->index($noun);
-                } else {
-                    $errors[] = 'couldn\'t index '.$fact->about();
-                }
-                $queue->delete($fact);
+        $queue = $this->cms->helper('datastore')->queue('search_indexing');
+        $this->beginTransaction();
+        while (($fact = $queue->pull1()) && $count < 10) {
+            if ($fact['action'] == 'delete') {
+                $count++;
+                $this->delete($fact['noun']);
+            } elseif ($noun = $this->cms->read($fact['noun'])) {
+                $count++;
+                $this->index($noun);
+            } else {
+                $errors[] = 'couldn\'t index '.$fact['noun'];
             }
-            $this->endTransaction();
         }
+        $this->endTransaction();
         return [
             'result' => count($pruned),
             'errors' => $errors
@@ -67,23 +63,23 @@ class SearchHelper extends AbstractHelper
     public function queueIndex($noun)
     {
         $noun = $this->sanitizeNoun($noun);
-        $this->cms->helper('data')->facts('search_index_queue')->create(
-            'queue', //name
-            time(), //value,
-            $noun, //about
-            ['action'=>'index'] //data
-        );
+        $q = $this->cms->helper('datastore')->queue('search_indexing');
+        $q->unique(true);
+        $q->put([
+            'noun' => $noun,
+            'action' => 'index'
+        ]);
     }
 
     public function queueDelete($noun)
     {
         $noun = $this->sanitizeNoun($noun);
-        $this->cms->helper('data')->facts('search_index_queue')->create(
-            'queue', //name
-            time(), //value,
-            $noun, //about
-            ['action'=>'delete'] //data
-        );
+        $q = $this->cms->helper('datastore')->queue('search_indexing');
+        $q->unique(true);
+        $q->put([
+            'noun' => $noun,
+            'action' => 'delete'
+        ]);
     }
 
     protected function sanitizeNoun($noun)
