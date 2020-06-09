@@ -258,6 +258,7 @@ class SearchHelper extends AbstractHelper
                     unset($pdf);
                     unset($parser);
                 } catch (\Exception $e) {
+                    ob_end_clean();//need this until probably the next version of pdfparser
                     $out .= '';
                 }
             }
