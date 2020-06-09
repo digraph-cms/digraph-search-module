@@ -117,94 +117,14 @@ class SearchHelper extends AbstractHelper
             $result[] = $d['dso.id'];
             $result = array_unique($result);
         }
-        //set up highlights
-        $result = array_map(
-            function ($e) use ($query) {
-                if ($noun = $this->cms->read($e)) {
-                    return [
-                        'noun' => $noun,
-                        'highlights' => $this->highlights($query, $noun)
-                    ];
-                }
-                return false;
-            },
-            $result
-        );
-        //filter and sort before returning
+        //filter before returning
         $result = array_filter($result);
-        $this->sort($query, $result);
         return $result;
-    }
-
-    protected function sortScore($noun, $query)
-    {
-        $query = strtolower($query);
-        $name = strtolower($noun->name());
-        $title = strtolower($noun->title());
-        $body = strtolower($noun->body());
-        $slug = strtolower($noun->url()['noun']);
-        $id = strtolower($noun['dso.id']);
-        $score = 0;
-        if ($name == $query) {
-            $score += 100;
-        }
-        if ($title == $query) {
-            $score += 100;
-        }
-        if ($slug == $query) {
-            $score += 100;
-        }
-        if ($id == $query) {
-            $score += 100;
-        }
-        $posName = strpos($name, $query);
-        $posTitle = strpos($title, $query);
-        $posSlug = strpos($slug, $query);
-        $posId = strpos($id, $query);
-        if ($posSlug === 0) {
-            $score += 50;
-        } elseif ($posSlug !== false) {
-            $score += 20;
-        }
-        if ($posId === 0) {
-            $score += 50;
-        } elseif ($posId !== false) {
-            $score += 20;
-        }
-        if ($posName === 0) {
-            $score += 50;
-        } elseif ($posName !== false) {
-            $score += 20;
-        }
-        if ($posTitle === 0) {
-            $score += 50;
-        } elseif ($posTitle !== false) {
-            $score += 20;
-        }
-        if (strpos($body, $query) !== false) {
-            $score += 10;
-        }
-        return $score;
-    }
-
-    protected function sort($query, &$result)
-    {
-        uasort($result, function ($a, $b) use ($query) {
-            $as = $this->sortScore($a['noun'], $query);
-            $bs = $this->sortScore($b['noun'], $query);
-            if ($as == $bs) {
-                return 0;
-            } elseif ($as > $bs) {
-                return -1;
-            } else {
-                return 1;
-            }
-        });
     }
 
     public function highlights($query, $noun)
     {
-        $text = \Soundasleep\Html2Text::convert(
+        $text = strip_tags(
             $this->article($noun),
             [
                 'ignore_errors' => true,
@@ -226,9 +146,8 @@ class SearchHelper extends AbstractHelper
             }
             $hl = substr($text, $pos, $length);
             $limit = $pos + $length;
-            $highlights[substr_count($hl, '<em>')-$pos] = $this->tnt->highlight(strip_tags($hl), $query);
+            $highlights[] = $this->tnt->highlight(htmlentities(strip_tags($hl)), $query);
         }
-        krsort($highlights);
         return array_slice($highlights, 0, $this->cms->config['search.highlight.count']);
     }
 
@@ -278,7 +197,19 @@ class SearchHelper extends AbstractHelper
         }
     }
 
-    protected function article(&$noun)
+    protected function article($noun)
+    {
+        $cache = $this->cms->cache();
+        $cacheID = md5(static::class).'.article.'.$noun['dso.id'];
+        $article = $cache->getItem($cacheID);
+        if (!$article->isHit()) {
+            $article->set($this->doArticle($noun));
+            $cache->save($article);
+        }
+        return $article->get();
+    }
+
+    protected function doArticle($noun)
     {
         $article = [
             $noun->url()['noun'],
@@ -321,15 +252,13 @@ class SearchHelper extends AbstractHelper
                     continue;
                 }
                 try {
-                    ob_start();
                     $parser = new \Smalot\PdfParser\Parser();
                     $pdf = @$parser->parseFile($file->path());
                     $out .= ' '.@$pdf->getText();
                     unset($pdf);
                     unset($parser);
-                    ob_end_clean();
                 } catch (\Exception $e) {
-                    $out .= ' [error parsing pdf]';
+                    $out .= '';
                 }
             }
         }
@@ -368,6 +297,7 @@ function return_bytes($val)
 {
     $val = trim($val);
     $last = strtolower($val[strlen($val)-1]);
+    $val = substr($val,0,strlen($val)-1);
     switch ($last) {
         // The 'G' modifier is available since PHP 5.1.0
         case 'g':
