@@ -1,5 +1,4 @@
 <?php
-$package->noCache();
 $search = $cms->helper('search');
 $t = $cms->helper('templates');
 
