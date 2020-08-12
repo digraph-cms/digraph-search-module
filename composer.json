@@ -17,6 +17,6 @@
     "require": {
         "teamtnt/tntsearch": "^2.1",
         "soundasleep/html2text": "^1.1",
-        "smalot/pdfparser": "^0.15.1"
+        "smalot/pdfparser": "^0.16"
     }
 }
