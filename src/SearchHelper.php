@@ -55,7 +55,7 @@ class SearchHelper extends AbstractHelper
         }
         $this->endTransaction();
         return [
-            'result' => count($pruned),
+            'result' => $count,
             'errors' => $errors
         ];
     }
